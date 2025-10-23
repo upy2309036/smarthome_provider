@@ -7,6 +7,7 @@ import '../widgets/connection_status_bar.dart';
 import '../widgets/device_list.dart';
 import '../widgets/sensor_display.dart';
 import 'bluetooth_devices_screen.dart';
+import '../widgets/app_drawer.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -41,9 +42,9 @@ class _HomeScreenState extends State<HomeScreen> {
           PopupMenuButton<String>(
             onSelected: (value) {
               if (value == 'disconnect') {
-                _handleDisconnect();
+                _handleDisconnect(context);
               } else if (value == 'refresh') {
-                _handleRefresh();
+                _handleRefresh(context);
               }
             },
             itemBuilder: (context) => [
@@ -71,6 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+      drawer: const AppDrawer(),
       body: Column(
         children: [
           // Barra de estado de conexión
@@ -150,55 +152,41 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _handleDisconnect() async {
+  // Helper to show a SnackBar safely after a build.
+  void _showSnackBar(BuildContext context, String message, {bool isError = false}) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : null,
+      ),
+    );
+  }
+
+  Future<void> _handleProviderAction(
+    BuildContext context,
+    Future<void> Function(DeviceProvider) action,
+    String successMessage,
+  ) async {
     final provider = context.read<DeviceProvider>();
-    
     if (!provider.isConnected) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Not connected to any device')),
-      );
+      _showSnackBar(context, 'Not connected to any device');
       return;
     }
 
     try {
-      await provider.disconnect();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Disconnected successfully')),
-        );
-      }
+      await action(provider);
+      _showSnackBar(context, successMessage);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
+      _showSnackBar(context, 'Error: $e', isError: true);
     }
   }
 
-  void _handleRefresh() async {
-    final provider = context.read<DeviceProvider>();
-    
-    if (!provider.isConnected) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Not connected to any device')),
-      );
-      return;
-    }
+  void _handleDisconnect(BuildContext context) async {
+    await _handleProviderAction(context, (p) => p.disconnect(), 'Disconnected successfully');
+  }
 
-    try {
-      await provider.requestSensorData();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Refreshing sensor data...')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
-    }
+  void _handleRefresh(BuildContext context) async {
+    await _handleProviderAction(context, (p) => p.requestSensorData(), 'Refreshing sensor data...');
   }
 }

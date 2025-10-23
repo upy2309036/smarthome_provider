@@ -6,7 +6,7 @@ import '../providers/device_provider.dart';
 import '../models/sensor_data.dart';
 
 class SensorDisplay extends StatelessWidget {
-  const SensorDisplay({Key? key}) : super(key: key);
+  const SensorDisplay({super.key});
 
   @override
   Widget build(BuildContext context) {

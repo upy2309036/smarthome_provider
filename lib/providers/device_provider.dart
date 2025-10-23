@@ -19,7 +19,6 @@ class DeviceProvider extends ChangeNotifier {
   
   // Constructor
   DeviceProvider(this._bluetoothService) {
-    _initializeDevices();
     _listenToBluetoothData();
   }
   
@@ -29,38 +28,12 @@ class DeviceProvider extends ChangeNotifier {
   bool get isConnected => _isConnected;
   String get statusMessage => _statusMessage;
   bool get isLoading => _isLoading;
-  
-  // Inicializar dispositivos por defecto
-  void _initializeDevices() {
-    _devices = [
-      SmartDevice(
-        id: 'led1',
-        name: 'Living Room LED',
-        type: DeviceType.led,
-      ),
-      SmartDevice(
-        id: 'led2',
-        name: 'Bedroom LED',
-        type: DeviceType.led,
-      ),
-      SmartDevice(
-        id: 'led3',
-        name: 'Kitchen LED',
-        type: DeviceType.led,
-      ),
-      SmartDevice(
-        id: 'servo1',
-        name: 'Window Blind',
-        type: DeviceType.servo,
-        angle: 90,
-      ),
-      SmartDevice(
-        id: 'servo2',
-        name: 'Door Lock',
-        type: DeviceType.servo,
-        angle: 0,
-      ),
-    ];
+
+  /// Updates the devices based on a profile's settings.
+  void applyProfileSettings(List<SmartDevice> deviceSettings) {
+    // Create deep copies to prevent modifying the original profile settings
+    _devices = deviceSettings.map((d) => d.copyWith()).toList();
+    notifyListeners();
   }
 // Encender/Apagar LED
   Future<void> toggleDevice(String deviceId) async {
@@ -325,14 +298,7 @@ class DeviceProvider extends ChangeNotifier {
       _isConnected = false;
       _statusMessage = 'Disconnected';
       _currentSensorData = null;
-      
-      // Resetear estado de dispositivos
-      for (var device in _devices) {
-        device.isOn = false;
-        if (device.type == DeviceType.servo) {
-          device.angle = 90; // Posición neutral
-        }
-      }
+      _devices.clear(); // Clear devices on disconnect
       
       _isLoading = false;
       notifyListeners();

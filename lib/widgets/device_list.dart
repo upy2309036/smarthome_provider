@@ -71,7 +71,7 @@ class DeviceList extends StatelessWidget {
               ...devices
                   .where((d) => d.type == DeviceType.led)
                   .map((device) => DeviceCard(device: device))
-                  .toList(),
+                  ,
               
               const SizedBox(height: 16),
               
@@ -80,7 +80,7 @@ class DeviceList extends StatelessWidget {
               ...devices
                   .where((d) => d.type == DeviceType.servo)
                   .map((device) => DeviceCard(device: device))
-                  .toList(),
+                  ,
               
               const SizedBox(height: 16),
               

@@ -42,4 +42,29 @@ class SmartDevice {
   String toString() {
     return 'SmartDevice(id: $id, name: $name, type: $type, isOn: $isOn, angle: $angle)';
   }
+
+  // Convert a SmartDevice instance to a JSON map.
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'type': type.name,
+      'isOn': isOn,
+      'angle': angle,
+    };
+  }
+
+  // Create a SmartDevice instance from a JSON map.
+  factory SmartDevice.fromJson(Map<String, dynamic> json) {
+    return SmartDevice(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      type: DeviceType.values.firstWhere(
+        (e) => e.name == json['type'],
+        orElse: () => DeviceType.led, // Default value
+      ),
+      isOn: json['isOn'] as bool,
+      angle: json['angle'] as int?,
+    );
+  }
 }
