@@ -62,6 +62,114 @@ class DeviceProvider extends ChangeNotifier {
       ),
     ];
   }
+  // lib/providers/device_provider.dart
+
+// ... (código existente) ...
+
+// ============ DEFINICIÓN DE PERFILES ============
+// Estructura: 'Perfil': [{'device': ID, 'type': 'led'/'servo', 'value': ESTADO/ANGULO}]
+static const Map<String, List<Map<String, dynamic>>> _userProfiles = {
+  'Mamá': [
+    // LED: Solo el de la habitación encendido
+    {'device': 'led1', 'type': DeviceType.led, 'value': true},  // Living Room OFF
+    {'device': 'led2', 'type': DeviceType.led, 'value': true}, // Bedroom ON
+    {'device': 'led3', 'type': DeviceType.led, 'value': false}, // Kitchen OFF
+    // SERVO: Cortinas arriba (Ángulo 180)
+    {'device': 'servo1', 'type': DeviceType.servo, 'value': 180}, // Window Blind (Abierto)
+    {'device': 'servo2', 'type': DeviceType.servo, 'value': 0},  // Door Lock (Cerrado)
+  ],
+  'Papá': [
+    // LED: Cocina y Salón encendidos
+    {'device': 'led1', 'type': DeviceType.led, 'value': true},
+    {'device': 'led2', 'type': DeviceType.led, 'value': false},
+    {'device': 'led3', 'type': DeviceType.led, 'value': true},
+    // SERVO: Cortinas a mitad (Ángulo 90)
+    {'device': 'servo1', 'type': DeviceType.servo, 'value': 90},
+    {'device': 'servo2', 'type': DeviceType.servo, 'value': 0}, 
+  ],
+  'Hijo': [
+    // LED: Todo apagado
+    {'device': 'led1', 'type': DeviceType.led, 'value': false},
+    {'device': 'led2', 'type': DeviceType.led, 'value': false},
+    {'device': 'led3', 'type': DeviceType.led, 'value': false},
+    // SERVO: Cortinas abajo (Ángulo 0)
+    {'device': 'servo1', 'type': DeviceType.servo, 'value': 0}, // Window Blind (Cerrado)
+    {'device': 'servo2', 'type': DeviceType.servo, 'value': 90}, // Door Lock (Abierto para el hijo)
+  ],
+  
+};
+
+// Getter para la UI
+Map<String, List<Map<String, dynamic>>> get userProfiles => _userProfiles;
+// lib/providers/device_provider.dart
+
+// ... (código existente de control de servos/LEDs) ...
+
+// ============ FUNCIÓN NUEVA: APLICAR PERFIL ============
+Future<void> applyProfile(String profileName) async {
+  if (!_userProfiles.containsKey(profileName)) {
+    _statusMessage = 'Error: Perfil "$profileName" no existe.';
+    notifyListeners();
+    return;
+  }
+  
+  _isLoading = true;
+  _statusMessage = 'Applying $profileName profile...';
+  notifyListeners();
+  
+  try {
+    final actions = _userProfiles[profileName]!;
+    
+    for (var action in actions) {
+      final deviceId = action['device'] as String;
+      final type = action['type'] as DeviceType;
+      final value = action['value'];
+      
+      Map<String, dynamic> command = {};
+      
+      // 1. Construir el comando JSON para el Arduino
+      if (type == DeviceType.led) {
+        command = {
+          'device': deviceId,
+          'action': value ? 'on' : 'off'
+        };
+      } else if (type == DeviceType.servo) {
+        command = {
+          'device': deviceId,
+          'action': 'angle',
+          'value': value
+        };
+      }
+      
+      // 2. Enviar comando
+      await _bluetoothService.sendCommand(command);
+      
+      // 3. Actualizar el estado localmente (para la UI)
+      final deviceIndex = _devices.indexWhere((d) => d.id == deviceId);
+      if (deviceIndex != -1) {
+          final oldDevice = _devices[deviceIndex];
+          if (type == DeviceType.led) {
+             _devices[deviceIndex] = oldDevice.copyWith(isOn: value as bool);
+          } else if (type == DeviceType.servo) {
+             _devices[deviceIndex] = oldDevice.copyWith(angle: value as int);
+          }
+      }
+
+      // Pausa breve para evitar saturar el HC-05
+      await Future.delayed(const Duration(milliseconds: 50)); 
+    }
+    
+    _statusMessage = 'Profile $profileName applied successfully.';
+    _isLoading = false;
+    notifyListeners();
+    
+  } catch (e) {
+    _statusMessage = 'Error applying profile: ${e.toString()}';
+    _isLoading = false;
+    notifyListeners();
+    rethrow;
+  }
+}
 // Encender/Apagar LED
   Future<void> toggleDevice(String deviceId) async {
     try {

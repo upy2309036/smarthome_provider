@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../providers/device_provider.dart';
 import '../models/device.dart';
 import 'device_card.dart';
+import 'profile_selector.dart';
 
 class DeviceList extends StatelessWidget {
   const DeviceList({super.key});
@@ -66,6 +67,9 @@ class DeviceList extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(8),
             children: [
+              const ProfileSelector(), // <-- AÑADE ESTO AQUÍ
+        
+        _buildSectionHeader('LED Controls', Icons.lightbulb_outline),
               // Sección de LEDs
               _buildSectionHeader('LED Controls', Icons.lightbulb_outline),
               ...devices
